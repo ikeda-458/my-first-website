@@ -3,18 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>私の初めてのWebサイト</title>
+    <title>資産運用シミュレーション</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: sans-serif;
-            background-color: #f0f0f0;
-            text-align: center;
-            padding-top: 50px;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+        }
+        .container {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        /* Hide default number input spin buttons */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        /* Style for range input track and thumb */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d1d5db; /* Gray track */
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* Blue thumb */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            margin-top: -6px; /* Adjust thumb position */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* Blue thumb */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
-<body>
-    <h1>ようこそ！</h1>
-    <p>GitHub Pagesを使って公開しました。</p>
+<body class="p-4">
+    <div class="container">
+        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">
+            資産運用シミュレーション
+        </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Initial Investment Input -->
+            <div class="flex flex-col">
+                <label for="initialInvestment" class="text-lg font-medium text-gray-700 mb-2">元金 (円)</label>
+                <input type="number" id="initialInvestment" value="1000000"
+                       class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg">
+            </div>
+
+            <!-- Annual Contribution Input -->
+            <div class="flex flex-col">
+                <label for="annualContribution" class="text-lg font-medium text-gray-700 mb-2">年間積立額 (円)</label>
+                <input type="number" id="annualContribution" value="120000"
+                       class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg">
+            </div>
+
+            <!-- Annual Interest Rate Input with Slider -->
+            <div class="flex flex-col">
+                <label for="interestRate" class="text-lg font-medium text-gray-700 mb-2">年利 (%)</label>
+                <input type="number" id="interestRate" value="5" step="0.1" min="0" max="20"
+                       class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg mb-2">
+                <input type="range" id="interestRateSlider" value="5" step="0.1" min="0" max="20">
+            </div>
+
+            <!-- Number of Years Input with Slider -->
+            <div class="flex flex-col">
+                <label for="years" class="text-lg font-medium text-gray-700 mb-2">運用期間 (年)</label>
+                <input type="number" id="years" value="20" min="1" max="50"
+                       class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg mb-2">
+                <input type="range" id="yearsSlider" value="20" min="1" max="50">
+            </div>
+        </div>
+
+        <!-- Calculate Button -->
+        <button id="calculateBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition duration-300 ease-in-out transform hover:scale-105">
+            シミュレーションを実行
+        </button>
+
+        <!-- Results Display Area -->
+        <div id="results" class="mt-10 p-6 bg-blue-50 rounded-lg shadow-inner hidden">
+            <h2 class="text-2xl font-bold text-blue-800 mb-4">シミュレーション結果</h2>
+            <div class="space-y-4 text-lg text-gray-800 mb-6">
+                <p><strong>最終積立額:</strong> <span id="finalAmount" class="font-semibold text-blue-700"></span> 円</p>
+                <p><strong>総積立額:</strong> <span id="totalContribution" class="font-semibold text-blue-700"></span> 円</p>
+                <p><strong>総利息:</strong> <span id="totalInterest" class="font-semibold text-blue-700"></span> 円</p>
+            </div>
+            <!-- Chart Canvas -->
+            <div class="relative h-80">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Error Message Area -->
+        <div id="errorMessage" class="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+            <p class="font-semibold">入力エラー:</p>
+            <ul id="errorList" class="list-disc list-inside mt-2"></ul>
+        </div>
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const initialInvestmentInput = document.getElementById('initialInvestment');
+        const annualContributionInput = document.getElementById('annualContribution');
+        const interestRateInput = document.getElementById('interestRate');
+        const interestRateSlider = document.getElementById('interestRateSlider');
+        const yearsInput = document.getElementById('years');
+        const yearsSlider = document.getElementById('yearsSlider');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultsDiv = document.getElementById('results');
+        const finalAmountSpan = document.getElementById('finalAmount');
+        const totalContributionSpan = document.getElementById('totalContribution');
+        const totalInterestSpan = document.getElementById('totalInterest');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        const errorList = document.getElementById('errorList');
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        let myChart; // Chartインスタンスを保持するための変数
+
+        // 数値のフォーマット関数（3桁区切り）
+        function formatNumber(num) {
+            return new Intl.NumberFormat('ja-JP').format(num);
+        }
+
+        // シミュレーション計算関数
+        function calculateCompoundInterest() {
+            // エラーメッセージをリセット
+            errorMessageDiv.classList.add('hidden');
+            errorList.innerHTML = '';
+            resultsDiv.classList.add('hidden');
+
+            // 入力値を取得し、数値に変換
+            const initialInvestment = parseFloat(initialInvestmentInput.value);
+            const annualContribution = parseFloat(annualContributionInput.value);
+            const interestRate = parseFloat(interestRateInput.value);
+            const years = parseInt(yearsInput.value);
+
+            // 入力値の検証
+            const errors = [];
+            if (isNaN(initialInvestment) || initialInvestment < 0) {
+                errors.push('元金は0以上の数値を入力してください。');
+            }
+            if (isNaN(annualContribution) || annualContribution < 0) {
+                errors.push('年間積立額は0以上の数値を入力してください。');
+            }
+            if (isNaN(interestRate) || interestRate < 0) {
+                errors.push('年利は0以上の数値を入力してください。');
+            }
+            if (isNaN(years) || years <= 0) {
+                errors.push('運用期間は1年以上の整数を入力してください。');
+            }
+
+            if (errors.length > 0) {
+                errors.forEach(error => {
+                    const li = document.createElement('li');
+                    li.textContent = error;
+                    errorList.appendChild(li);
+                });
+                errorMessageDiv.classList.remove('hidden');
+                return; // エラーがあれば処理を中断
+            }
+
+            const monthlyInterestRate = (interestRate / 100) / 12;
+            const totalMonths = years * 12;
+
+            let currentAmount = initialInvestment;
+            let totalContributionsMade = initialInvestment;
+            let totalInterestEarned = 0;
+
+            const annualData = [];
+            annualData.push({
+                year: 0,
+                amount: initialInvestment,
+                contribution: initialInvestment,
+                interest: 0
+            });
+
+            // 月次で積立と複利計算
+            for (let year = 1; year <= years; year++) {
+                let yearStartAmount = currentAmount; // 年初資産額
+                for (let month = 0; month < 12; month++) {
+                    // 月初の積立
+                    currentAmount += (annualContribution / 12);
+                    totalContributionsMade += (annualContribution / 12); // 総積立額は累積
+
+                    // 利息の計算
+                    currentAmount *= (1 + monthlyInterestRate);
+                }
+                // 年末の総利息を計算 (その年の利息ではなく、総利息の累積)
+                totalInterestEarned = currentAmount - (initialInvestment + (annualContribution * year));
+
+                annualData.push({
+                    year: year,
+                    amount: currentAmount,
+                    contribution: initialInvestment + (annualContribution * year), // その時点での総積立額
+                    interest: totalInterestEarned
+                });
+            }
+
+            // 総利息の最終計算
+            totalInterestEarned = currentAmount - (initialInvestment + (annualContribution * years));
+
+            // 結果の表示
+            finalAmountSpan.textContent = formatNumber(Math.round(currentAmount));
+            totalContributionSpan.textContent = formatNumber(Math.round(initialInvestment + (annualContribution * years)));
+            totalInterestSpan.textContent = formatNumber(Math.round(totalInterestEarned));
+            resultsDiv.classList.remove('hidden');
+
+            // グラフの更新
+            updateChart(annualData);
+        }
+
+        // グラフの更新関数
+        function updateChart(data) {
+            const labels = data.map(d => d.year);
+            const finalAmounts = data.map(d => Math.round(d.amount));
+            const totalContributions = data.map(d => Math.round(d.contribution));
+
+            if (myChart) {
+                myChart.destroy(); // 既存のグラフがあれば破棄
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '総資産額',
+                        data: finalAmounts,
+                        borderColor: 'rgb(59, 130, 246)', // blue-500
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: '総積立額',
+                        data: totalContributions,
+                        borderColor: 'rgb(107, 114, 128)', // gray-500
+                        backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '資産推移グラフ',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatNumber(context.raw) + ' 円';
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '運用期間 (年)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '金額 (円)'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatNumber(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // スライダーと数値入力の同期
+        interestRateInput.addEventListener('input', () => {
+            interestRateSlider.value = interestRateInput.value;
+            calculateCompoundInterest(); // スライダー変更時も再計算
+        });
+        interestRateSlider.addEventListener('input', () => {
+            interestRateInput.value = interestRateSlider.value;
+            calculateCompoundInterest(); // スライダー変更時も再計算
+        });
+
+        yearsInput.addEventListener('input', () => {
+            yearsSlider.value = yearsInput.value;
+            calculateCompoundInterest(); // スライダー変更時も再計算
+        });
+        yearsSlider.addEventListener('input', () => {
+            yearsInput.value = yearsSlider.value;
+            calculateCompoundInterest(); // スライダー変更時も再計算
+        });
+
+        // ボタンクリックイベントリスナー
+        calculateBtn.addEventListener('click', calculateCompoundInterest);
+
+        // 初期計算を実行（ページロード時）
+        calculateCompoundInterest();
+    </script>
 </body>
 </html>
+
