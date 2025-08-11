@@ -82,10 +82,10 @@
                        class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg">
             </div>
 
-            <!-- Annual Contribution Input -->
+            <!-- Monthly Contribution Input -->
             <div class="flex flex-col">
-                <label for="annualContribution" class="text-lg font-medium text-gray-700 mb-2">年間積立額 (円)</label>
-                <input type="number" id="annualContribution" value="120000"
+                <label for="monthlyContribution" class="text-lg font-medium text-gray-700 mb-2">毎月の積立額 (円)</label>
+                <input type="number" id="monthlyContribution" value="10000"
                        class="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg">
             </div>
 
@@ -136,7 +136,7 @@
     <script>
         // DOM要素の取得
         const initialInvestmentInput = document.getElementById('initialInvestment');
-        const annualContributionInput = document.getElementById('annualContribution');
+        const monthlyContributionInput = document.getElementById('monthlyContribution'); // 変更: 月額積立額の入力
         const interestRateInput = document.getElementById('interestRate');
         const interestRateSlider = document.getElementById('interestRateSlider');
         const yearsInput = document.getElementById('years');
@@ -166,7 +166,7 @@
 
             // 入力値を取得し、数値に変換
             const initialInvestment = parseFloat(initialInvestmentInput.value);
-            const annualContribution = parseFloat(annualContributionInput.value);
+            const monthlyContribution = parseFloat(monthlyContributionInput.value); // 変更: 月額積立額を取得
             const interestRate = parseFloat(interestRateInput.value);
             const years = parseInt(yearsInput.value);
 
@@ -175,8 +175,8 @@
             if (isNaN(initialInvestment) || initialInvestment < 0) {
                 errors.push('元金は0以上の数値を入力してください。');
             }
-            if (isNaN(annualContribution) || annualContribution < 0) {
-                errors.push('年間積立額は0以上の数値を入力してください。');
+            if (isNaN(monthlyContribution) || monthlyContribution < 0) { // 変更: 月額積立額の検証
+                errors.push('毎月の積立額は0以上の数値を入力してください。');
             }
             if (isNaN(interestRate) || interestRate < 0) {
                 errors.push('年利は0以上の数値を入力してください。');
@@ -199,8 +199,7 @@
             const totalMonths = years * 12;
 
             let currentAmount = initialInvestment;
-            let totalContributionsMade = initialInvestment;
-            let totalInterestEarned = 0;
+            let totalContributionsMade = initialInvestment; // 初期投資額は含める
 
             const annualData = [];
             annualData.push({
@@ -212,32 +211,34 @@
 
             // 月次で積立と複利計算
             for (let year = 1; year <= years; year++) {
-                let yearStartAmount = currentAmount; // 年初資産額
                 for (let month = 0; month < 12; month++) {
                     // 月初の積立
-                    currentAmount += (annualContribution / 12);
-                    totalContributionsMade += (annualContribution / 12); // 総積立額は累積
+                    currentAmount += monthlyContribution;
+                    totalContributionsMade += monthlyContribution; // 総積立額は累積
 
                     // 利息の計算
                     currentAmount *= (1 + monthlyInterestRate);
                 }
                 // 年末の総利息を計算 (その年の利息ではなく、総利息の累積)
-                totalInterestEarned = currentAmount - (initialInvestment + (annualContribution * year));
+                // 総利息 = 現在の総資産額 - (初期投資額 + 毎月の積立額 * 経過月数)
+                const currentTotalContribution = initialInvestment + (monthlyContribution * year * 12);
+                const currentTotalInterest = currentAmount - currentTotalContribution;
 
                 annualData.push({
                     year: year,
                     amount: currentAmount,
-                    contribution: initialInvestment + (annualContribution * year), // その時点での総積立額
-                    interest: totalInterestEarned
+                    contribution: currentTotalContribution, // その時点での総積立額
+                    interest: currentTotalInterest
                 });
             }
 
             // 総利息の最終計算
-            totalInterestEarned = currentAmount - (initialInvestment + (annualContribution * years));
+            const finalTotalContribution = initialInvestment + (monthlyContribution * years * 12);
+            totalInterestEarned = currentAmount - finalTotalContribution;
 
             // 結果の表示
             finalAmountSpan.textContent = formatNumber(Math.round(currentAmount));
-            totalContributionSpan.textContent = formatNumber(Math.round(initialInvestment + (annualContribution * years)));
+            totalContributionSpan.textContent = formatNumber(Math.round(finalTotalContribution));
             totalInterestSpan.textContent = formatNumber(Math.round(totalInterestEarned));
             resultsDiv.classList.remove('hidden');
 
@@ -351,4 +352,3 @@
     </script>
 </body>
 </html>
-
